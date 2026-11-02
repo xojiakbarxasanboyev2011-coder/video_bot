@@ -1,22 +1,26 @@
 """
-/start, /help va /about buyruqlari uchun handler'lar.
+/start, /help, /about buyruqlari va ularga tegishli callback'lar.
 
-Foydalanuvchini kutib oladi, bot imkoniyatlarini tushuntiradi va
-qo'shimcha ma'lumot beradi.
+Foydalanuvchini kutib oladi, qo'llanma va bot haqida ma'lumot beradi.
+Barcha klaviaturalar `bot.keyboards` paketidan olinadi.
 """
 
 import logging
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import CallbackQuery, Message
+
+from bot.keyboards import back_to_menu_keyboard, help_keyboard
 
 logger = logging.getLogger(__name__)
 router = Router(name="start_router")
 
 
-# Bot haqida qisqacha ma'lumot — bir joyda saqlash osonroq
+# ─────────────────────────────────────────────────────────────
+# Matnlar — bitta joyda saqlash osonroq (kelajakda i18n uchun qulay)
+# ─────────────────────────────────────────────────────────────
+
 WELCOME_TEXT = (
     "👋 <b>Salom, {name}!</b>\n\n"
     "Men video yuklovchi botman. Menga istalgan ijtimoiy tarmoqdan "
@@ -62,14 +66,9 @@ ABOUT_TEXT = (
 )
 
 
-def _help_keyboard() -> InlineKeyboardMarkup:
-    """Foydalanuvchiga foydali havolalar va tugmalar."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📖 Qo'llanma", callback_data="show_help")
-    builder.button(text="ℹ️ Bot haqida", callback_data="show_about")
-    builder.adjust(2)  # ikkita tugma bir qatorda
-    return builder.as_markup()
-
+# ─────────────────────────────────────────────────────────────
+# Buyruqlar
+# ─────────────────────────────────────────────────────────────
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
@@ -79,7 +78,7 @@ async def cmd_start(message: Message) -> None:
 
     await message.answer(
         WELCOME_TEXT.format(name=user_name),
-        reply_markup=_help_keyboard(),
+        reply_markup=help_keyboard(),
         disable_web_page_preview=True,
     )
 
@@ -87,10 +86,56 @@ async def cmd_start(message: Message) -> None:
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
     """Foydalanuvchi /help bosganda batafsil qo'llanmani ko'rsatadi."""
-    await message.answer(HELP_TEXT, disable_web_page_preview=True)
+    await message.answer(
+        HELP_TEXT,
+        reply_markup=back_to_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
 
 
 @router.message(Command("about"))
 async def cmd_about(message: Message) -> None:
     """Bot haqida ma'lumot."""
-    await message.answer(ABOUT_TEXT, disable_web_page_preview=True)
+    await message.answer(
+        ABOUT_TEXT,
+        reply_markup=back_to_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
+
+
+# ─────────────────────────────────────────────────────────────
+# Callback handler'lar
+# ─────────────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "show_help")
+async def cb_show_help(callback: CallbackQuery) -> None:
+    """«Qo'llanma» tugmasi bosilganda."""
+    await callback.message.answer(
+        HELP_TEXT,
+        reply_markup=back_to_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "show_about")
+async def cb_show_about(callback: CallbackQuery) -> None:
+    """«Bot haqida» tugmasi bosilganda."""
+    await callback.message.answer(
+        ABOUT_TEXT,
+        reply_markup=back_to_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "back_to_start")
+async def cb_back_to_start(callback: CallbackQuery) -> None:
+    """Asosiy menyuga qaytish."""
+    user_name = callback.from_user.first_name or "do'stim"
+    await callback.message.answer(
+        WELCOME_TEXT.format(name=user_name),
+        reply_markup=help_keyboard(),
+        disable_web_page_preview=True,
+    )
+    await callback.answer()
