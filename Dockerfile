@@ -1,9 +1,10 @@
 FROM python:3.11-slim
 
-# Tizim paketlarini o'rnatish (ffmpeg va curl)
+# Tizim paketlarini o'rnatish (ffmpeg, curl va unzip)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Deno o'rnatish (YouTube uchun JavaScript dvigateli)
