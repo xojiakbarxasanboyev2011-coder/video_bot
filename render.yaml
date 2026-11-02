@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: video_bot
+    runtime: python
+    buildCommand: |
+      pip install -r requirements.txt
+      curl -fsSL https://deno.land/install.sh | sh
+      export PATH="/opt/render/.deno/bin:$PATH"
+      deno --version
+    startCommand: python -m bot.main
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: DOWNLOAD_DIR
+        value: /tmp/downloads
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DENO_INSTALL
+        value: /opt/render/.deno
+      - key: PATH
+        value: /opt/render/.deno/bin:/usr/local/bin:/usr/bin:/bin
+      - key: YTDL_COOKIES
+        sync: false
