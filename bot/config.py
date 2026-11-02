@@ -1,18 +1,14 @@
 """
 Loyiha sozlamalari.
-
-Barcha konfiguratsiya `.env` faylidan yoki Render'dagi muhit
-o'zgaruvchilaridan (Environment Variables) o'qiladi.
 """
 
 import os
+import logging
 from pathlib import Path
-
 from dotenv import load_dotenv
 
-# ─────────────────────────────────────────────────────────────
-# .env faylini yuklash
-# ─────────────────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
@@ -22,22 +18,15 @@ load_dotenv(BASE_DIR / ".env")
 # ─────────────────────────────────────────────────────────────
 
 def _get_env(name: str, default: str | None = None, required: bool = False) -> str:
-    """Muhit o'zgaruvchisini xavfsiz o'qiydi."""
     value = os.getenv(name, default)
-
     if value is None or (isinstance(value, str) and not value.strip()):
         if required:
-            raise RuntimeError(
-                f"'{name}' muhit o'zgaruvchisi topilmadi. "
-                f".env faylini yoki platforma sozlamalarini tekshiring."
-            )
+            raise RuntimeError(f"'{name}' muhit o'zgaruvchisi topilmadi.")
         return default or ""
-
     return value.strip()
 
 
 def _get_int(name: str, default: int = 0) -> int:
-    """Butun son o'zgaruvchisini xavfsiz o'qiydi."""
     raw = _get_env(name, default=str(default))
     try:
         return int(raw)
@@ -46,7 +35,6 @@ def _get_int(name: str, default: int = 0) -> int:
 
 
 def _get_bool(name: str, default: bool = False) -> bool:
-    """Mantiqiy (True/False) o'zgaruvchisini o'qiydi."""
     raw = _get_env(name, default="true" if default else "false").lower()
     return raw in ("1", "true", "yes", "on")
 
@@ -69,13 +57,15 @@ ADMIN_ID: int = ADMIN_IDS[0] if ADMIN_IDS else 0
 # ─────────────────────────────────────────────────────────────
 # Fayl va papka yo'llari
 # ─────────────────────────────────────────────────────────────
-# Render'da vaqtinchalik papkalar faqat /tmp ichida ishlaydi.
-# Shuning uchun agar muhit o'zgaruvchisi berilmagan bo'lsa, /tmp ishlatiladi.
+
 default_download_dir = "/tmp/downloads" if os.getenv("RENDER") else str(BASE_DIR / "downloads")
 
 DOWNLOAD_DIR: Path = Path(_get_env("DOWNLOAD_DIR", default=default_download_dir))
 LOG_FILE: Path = Path(_get_env("LOG_FILE", default=str(BASE_DIR / "bot.log")))
 LOG_LEVEL: str = _get_env("LOG_LEVEL", default="INFO").upper()
+
+# Render'dagi vaqtinchalik xotirada cookie faylini saqlash joyi
+COOKIES_FILE: Path = Path("/tmp/cookies.txt")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -100,41 +90,29 @@ ENFORCE_SINGLE_DOWNLOAD: bool = _get_bool("ENFORCE_SINGLE_DOWNLOAD", default=Tru
 # ─────────────────────────────────────────────────────────────
 
 def validate_config() -> None:
-    """Sozlamalar to'g'riligini tekshiradi va kerakli papkalarni yaratadi."""
+    """Sozlamalar to'g'riligini tekshiradi, papkalarni va cookie faylini yaratadi."""
     errors: list[str] = []
 
     if not BOT_TOKEN:
         errors.append("BOT_TOKEN bo'sh.")
     elif ":" not in BOT_TOKEN or not BOT_TOKEN.split(":", 1)[0].isdigit():
-        errors.append("BOT_TOKEN noto'g'ri formatda (123456789:ABCdef... ko'rinishida bo'lishi kerak).")
-
-    if MAX_FILE_SIZE <= 0:
-        errors.append("MAX_FILE_SIZE musbat son bo'lishi kerak.")
-
-    if DOWNLOAD_TIMEOUT <= 0:
-        errors.append("DOWNLOAD_TIMEOUT musbat son bo'lishi kerak.")
+        errors.append("BOT_TOKEN noto'g'ri formatda.")
 
     if errors:
         raise RuntimeError("Konfiguratsiya xatolari:\n  - " + "\n  - ".join(errors))
 
+    # Papkalarni yaratish
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-
-# ─────────────────────────────────────────────────────────────
-# Qulay debug
-# ─────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    # Python 3.11 dagi xatolik tuzatildi (f-string ichida backslash yo'q)
-    token_display = ("*" * 10 + BOT_TOKEN[-4:]) if BOT_TOKEN else "(kiritilmagan)"
-    
-    print("=== Bot konfiguratsiyasi ===")
-    print(f"BOT_TOKEN        : {token_display}")
-    print(f"ADMIN_IDS        : {ADMIN_IDS}")
-    print(f"DOWNLOAD_DIR     : {DOWNLOAD_DIR}")
-    print(f"LOG_FILE         : {LOG_FILE}")
-    print(f"LOG_LEVEL        : {LOG_LEVEL}")
-    print(f"MAX_FILE_SIZE    : {MAX_FILE_SIZE // (1024 * 1024)} MB")
-    print(f"DOWNLOAD_TIMEOUT : {DOWNLOAD_TIMEOUT} s")
-    print(f"CLEANUP_MAX_AGE  : {CLEANUP_MAX_AGE_MINUTES} min")
-    print(f"ENFORCE_SINGLE   : {ENFORCE_SINGLE_DOWNLOAD}")
+    # YTDL_COOKIES matnini faylga yozish (agar mavjud bo'lsa)
+    cookies_content = os.getenv("YTDL_COOKIES")
+    if cookies_content:
+        try:
+            # strip() orqali ortiqcha bo'sh joylarni olib tashlaymiz
+            COOKIES_FILE.write_text(cookies_content.strip(), encoding="utf-8")
+            logger.info("Cookies fayli muvaffaqiyatli yaratildi: %s", COOKIES_FILE)
+        except Exception as e:
+            logger.error("Cookies faylini yozishda xatolik: %s", e)
+    else:
+        logger.warning("YTDL_COOKIES topilmadi. YouTube bloklashi mumkin.")
