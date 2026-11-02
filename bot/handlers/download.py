@@ -2,20 +2,21 @@
 Video yuklash handler'i.
 
 Foydalanuvchi yuborgan havolani qabul qiladi, yt-dlp orqali videoni
-yuklab oladi va uni Telegram orqali qaytaradi.
+yuklab oladi va uni Telegram orqali qaytaradi. Xatoliklar, 50 MB
+limiti va bir foydalanuvchi uchun blokirovka hisobga olingan.
 """
 
 import asyncio
 import logging
 import os
-import re
 from pathlib import Path
 
-from aiogram import Router, F
-from aiogram.types import Message, FSInputFile
+from aiogram import F, Router
 from aiogram.enums import ChatAction
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from bot.services.downloader import download_video, DownloadError
+from bot.keyboards import after_download_keyboard
+from bot.services.downloader import DownloadError, download_video
 from bot.utils.validators import extract_url, is_supported_url
 
 logger = logging.getLogger(__name__)
@@ -25,9 +26,12 @@ router = Router(name="download_router")
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 # Bir vaqtning o'zida bitta foydalanuvchi uchun yuklashni bloklash uchun
-# (foydalanuvchi ketma-ket bir nechta havola yuborsa, resurs tejaladi)
 _active_users: set[int] = set()
 
+
+# ─────────────────────────────────────────────────────────────
+# Asosiy handler
+# ─────────────────────────────────────────────────────────────
 
 @router.message(F.text & ~F.text.startswith("/"))
 async def handle_video_link(message: Message) -> None:
@@ -62,20 +66,19 @@ async def handle_video_link(message: Message) -> None:
     _active_users.add(user_id)
     status_msg = await message.reply("🔍 Havola tekshirilmoqda...")
 
-    try:
-        # Telegram'ga "video yuborilmoqda" holatini ko'rsatamiz
-        await message.bot.send_chat_action(message.chat.id, ChatAction.UPLOAD_VIDEO)
+    file_path: Path | None = None
 
-        # yt-dlp sinxron — alohida oqimda ishga tushiriladi
+    try:
+        await message.bot.send_chat_action(message.chat.id, ChatAction.UPLOAD_VIDEO)
         await status_msg.edit_text("⬇️ Video yuklanmoqda, iltimos kuting...")
 
+        # yt-dlp sinxron — alohida oqimda ishga tushiriladi
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(None, download_video, url)
 
-        file_path: Path = result["file_path"]
+        file_path = Path(result["file_path"])
         title: str = result.get("title", "Video")
 
-        # Fayl mavjudligini tekshirish
         if not file_path.exists():
             raise DownloadError("Yuklangan fayl topilmadi.")
 
@@ -99,16 +102,17 @@ async def handle_video_link(message: Message) -> None:
             video=video_file,
             caption=f"✅ <b>{title[:200]}</b>",
             supports_streaming=True,
+            reply_markup=after_download_keyboard(),
         )
 
-        # Muvaffaqiyatli yuborilgach, status xabarini o'chirish
+        # Status xabarini o'chirish (endi kerak emas)
         await status_msg.delete()
 
     except DownloadError as e:
         logger.warning("Download failed for %s: %s", url, e)
         await status_msg.edit_text(f"❌ Yuklab bo'lmadi: {e}")
 
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error for %s", url)
         await status_msg.edit_text(
             "❌ Kutilmagan xatolik yuz berdi. Iltimos, keyinroq qayta urinib ko'ring."
@@ -117,8 +121,39 @@ async def handle_video_link(message: Message) -> None:
     finally:
         _active_users.discard(user_id)
         # Vaqtinchalik faylni tozalash
-        try:
-            if "file_path" in locals() and file_path.exists():
-                os.remove(file_path)
-        except OSError as e:
-            logger.warning("Failed to remove temp file %s: %s", file_path, e)
+        if file_path is not None:
+            try:
+                if file_path.exists():
+                    os.remove(file_path)
+            except OSError as e:
+                logger.warning("Failed to remove temp file %s: %s", file_path, e)
+
+
+# ─────────────────────────────────────────────────────────────
+# Callback handler'lar
+# ─────────────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "new_download")
+async def cb_new_download(callback: CallbackQuery) -> None:
+    """«Yana video yuklash» tugmasi bosilganda."""
+    await callback.message.answer(
+        "📎 Menga yangi video havolasini yuboring."
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "show_help_from_download")
+async def cb_show_help_from_download(callback: CallbackQuery) -> None:
+    """
+    Video yuborilgandan keyingi «Yordam» tugmasi bosilganda.
+    `start.py` dagi `show_help` callback'iga yo'naltiradi — buning uchun
+    Telegram callback emas, oddiy xabar yuboramiz.
+    """
+    from bot.handlers.start import HELP_TEXT, back_to_menu_keyboard
+
+    await callback.message.answer(
+        HELP_TEXT,
+        reply_markup=back_to_menu_keyboard(),
+        disable_web_page_preview=True,
+    )
+    await callback.answer()
