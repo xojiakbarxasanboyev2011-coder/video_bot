@@ -1,5 +1,5 @@
 """
-yt-dlp bilan ishlash.
+Working with yt-dlp.
 """
 
 import logging
