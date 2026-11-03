@@ -23,7 +23,7 @@ class VideoTooLargeError(DownloadError):
 
 
 class PrivateContentError(DownloadError):
-    """Video yopiq, o'chirilgan yoki mavjud emas."""
+    """The video is private, deleted, or unavailable."""
 
 
 def _build_ydl_opts(url: str, output_path: Path) -> dict:
