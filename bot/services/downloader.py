@@ -9,7 +9,7 @@ from pathlib import Path
 
 import yt_dlp
 
-from bot.config import DOWNLOAD_DIR, COOKIES_FILE
+from bot.config import DOWNLOAD_DIR, COOKIES_FILE, IG_COOKIES_FILE
 
 logger = logging.getLogger(__name__)
 
@@ -36,21 +36,22 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # YouTube'ning JS talabini qondirish uchun Deno'dan foydalanish
-        "js_runtimes": ["deno"],
+        # Xatolik shu yerda edi: ro'yxat emas, lug'at bo'lishi kerak
+        "js_runtimes": {"deno": {}}, 
+        "impersonate": "chrome",
     }
-
-    # Agar cookie fayli muvaffaqiyatli yaratilgan bo'lsa, uni qo'shamiz
-    if COOKIES_FILE.exists():
-        opts["cookiefile"] = str(COOKIES_FILE)
 
     url_lower = url.lower()
 
-    if "tiktok.com" in url_lower:
-        opts["format"] = "b"
-    elif "instagram.com" in url_lower:
+    if "instagram.com" in url_lower:
+        if IG_COOKIES_FILE.exists():
+            opts["cookiefile"] = str(IG_COOKIES_FILE)
         opts["format"] = "best"
-    else:
+    elif "tiktok.com" in url_lower:
+        opts["format"] = "b"
+    else:  # YouTube va boshqalar
+        if COOKIES_FILE.exists():
+            opts["cookiefile"] = str(COOKIES_FILE)
         opts["format"] = "best[ext=mp4]/best"
 
     return opts
@@ -72,12 +73,14 @@ def download_video(url: str) -> dict:
 
     except yt_dlp.utils.DownloadError as e:
         message = str(e).lower()
-        if "private" in message or "login" in message or "not available" in message:
-            raise PrivateContentError("Video yopiq (private), o'chirilgan yoki mavjud emas.") from e
+        if "sign in to confirm" in message:
+            raise DownloadError("YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring.") from e
+        if "login required" in message or "empty media" in message:
+            raise DownloadError("Instagram videoni yuklash uchun tizimga kirish talab qilinadi.") from e
+        if "private" in message or "not available" in message:
+            raise PrivateContentError("Video yopiq yoki mavjud emas.") from e
         if "unsupported url" in message:
             raise DownloadError("Bu sayt qo'llab-quvvatlanmaydi.") from e
-        if "sign in to confirm" in message:
-            raise DownloadError("YouTube bot deb hisobladi. Cookie faylini yangilang.") from e
         raise DownloadError("Videoni yuklab bo'lmadi.") from e
 
     except Exception as e:
