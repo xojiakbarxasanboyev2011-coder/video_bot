@@ -64,8 +64,9 @@ DOWNLOAD_DIR: Path = Path(_get_env("DOWNLOAD_DIR", default=default_download_dir)
 LOG_FILE: Path = Path(_get_env("LOG_FILE", default=str(BASE_DIR / "bot.log")))
 LOG_LEVEL: str = _get_env("LOG_LEVEL", default="INFO").upper()
 
-# Render'dagi vaqtinchalik xotirada cookie faylini saqlash joyi
+# Cookie fayllari uchun yo'llar
 COOKIES_FILE: Path = Path("/tmp/cookies.txt")
+IG_COOKIES_FILE: Path = Path("/tmp/instagram_cookies.txt")  # <-- Mana shu qator yetishmayotgan edi
 
 
 # ─────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ ENFORCE_SINGLE_DOWNLOAD: bool = _get_bool("ENFORCE_SINGLE_DOWNLOAD", default=Tru
 # ─────────────────────────────────────────────────────────────
 
 def validate_config() -> None:
-    """Sozlamalar to'g'riligini tekshiradi, papkalarni va cookie faylini yaratadi."""
+    """Sozlamalar to'g'riligini tekshiradi, papkalarni va cookie fayllarini yaratadi."""
     errors: list[str] = []
 
     if not BOT_TOKEN:
@@ -105,14 +106,24 @@ def validate_config() -> None:
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    # YTDL_COOKIES matnini faylga yozish (agar mavjud bo'lsa)
-    cookies_content = os.getenv("YTDL_COOKIES")
-    if cookies_content:
+    # YouTube Cookie faylini yaratish
+    yt_cookies_content = os.getenv("YTDL_COOKIES")
+    if yt_cookies_content:
         try:
-            # strip() orqali ortiqcha bo'sh joylarni olib tashlaymiz
-            COOKIES_FILE.write_text(cookies_content.strip(), encoding="utf-8")
-            logger.info("Cookies fayli muvaffaqiyatli yaratildi: %s", COOKIES_FILE)
+            COOKIES_FILE.write_text(yt_cookies_content.strip(), encoding="utf-8")
+            logger.info("YouTube cookies fayli yaratildi: %s", COOKIES_FILE)
         except Exception as e:
-            logger.error("Cookies faylini yozishda xatolik: %s", e)
+            logger.error("YouTube cookies faylini yozishda xatolik: %s", e)
     else:
-        logger.warning("YTDL_COOKIES topilmadi. YouTube bloklashi mumkin.")
+        logger.warning("YTDL_COOKIES topilmadi.")
+
+    # Instagram Cookie faylini yaratish
+    ig_cookies_content = os.getenv("IG_COOKIES")
+    if ig_cookies_content:
+        try:
+            IG_COOKIES_FILE.write_text(ig_cookies_content.strip(), encoding="utf-8")
+            logger.info("Instagram cookies fayli yaratildi: %s", IG_COOKIES_FILE)
+        except Exception as e:
+            logger.error("Instagram cookies faylini yozishda xatolik: %s", e)
+    else:
+        logger.warning("IG_COOKIES topilmadi.")
