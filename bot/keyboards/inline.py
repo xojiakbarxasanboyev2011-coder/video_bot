@@ -36,7 +36,7 @@ def after_download_keyboard() -> InlineKeyboardMarkup:
     Foydalanuvchini yana video yuborishga undaydi.
     """
     builder = InlineKeyboardBuilder()
-    builder.button(text="🎬 Yana video yuklash", callback_data="new_download")
+    builder.button(text="🎬 Yana video yuboring!", callback_data="new_download")
     builder.button(text="❓ Yordam", callback_data="show_help")
     builder.adjust(1)  # har bir tugma alohida qatorda
     return builder.as_markup()
