@@ -37,11 +37,8 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # Deno JavaScript dvigateli
         "js_runtimes": {"deno": {}},
-        # Brauzerni imitatsiya qilish
         "impersonate": ImpersonateTarget.from_str("chrome"),
-        # EJS skriptlarini yuklash
         "remote_components": ["ejs"],
     }
 
@@ -56,13 +53,14 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
     else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
-        # PO Token provayderidan foydalanish
+        # YouTube PO Token provayderi bilan integratsiya
         opts["extractor_args"] = {
             "youtube": {
-                "po_token": ["web+http://127.0.0.1:4416"],
+                "player_client": ["mweb", "android"],
+                "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
-        # Eng yaxshi video va audio oqimlarini birlashtirish
+        # Format tanlashni yanada moslashuvchan qilamiz
         opts["format"] = "bestvideo*+bestaudio/best"
 
     return opts
@@ -86,7 +84,7 @@ def download_video(url: str) -> dict:
         message = str(e).lower()
         if "sign in to confirm" in message:
             raise DownloadError(
-                "YouTube bot deb hisobladi. Cookie faylini yangilang."
+                "YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring."
             ) from e
         if "login required" in message or "empty media" in message:
             raise DownloadError(
