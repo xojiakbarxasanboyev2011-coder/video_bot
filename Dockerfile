@@ -1,31 +1,26 @@
 FROM python:3.11-slim
 
-# Kerakli tizim paketlarini o'rnatish
+# Tizim paketlari
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Deno (JavaScript dvigateli) o'rnatish
+# Deno (YouTube JS himoyasi uchun)
 RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
 
-# Python muhitini sozlash
-ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# Kutubxonalarni o'rnatish
+# Python kutubxonalari va YouTube PO Token provayderi
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir "yt-dlp[default,curl-cffi]" yt-dlp-ejs
+    pip install --no-cache-dir "yt-dlp[default,curl-cffi]" yt-dlp-ejs bgutil-ytdlp-pot-provider
 
-# Qolgan fayllarni ko'chirish
+# Loyiha fayllari
 COPY . .
 
-# Render uchun port
 EXPOSE 10000
-
-# Botni ishga tushirish
 CMD ["python", "-m", "bot.main"]
