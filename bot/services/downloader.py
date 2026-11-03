@@ -37,10 +37,12 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # Deno JavaScript dvigateli (lug'at formatida bo'lishi shart)
+        # Deno JavaScript dvigateli (lug'at formatida)
         "js_runtimes": {"deno": {}},
-        # Brauzerni imitatsiya qilish (obyekt formatida bo'lishi shart)
+        # Brauzerni imitatsiya qilish (obyekt formatida)
         "impersonate": ImpersonateTarget.from_str("chrome"),
+        # EJS skriptlarini yuklashga ruxsat (YouTube himoyasini yechish uchun)
+        "remote_components": ["ejs"],
     }
 
     url_lower = url.lower()
@@ -54,7 +56,8 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
     else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
-        opts["format"] = "best[ext=mp4]/best"
+        # Eng yaxshi video va audio oqimlarini tanlab, ularni birlashtirish
+        opts["format"] = "bestvideo*+bestaudio/best"
 
     return opts
 
@@ -87,6 +90,8 @@ def download_video(url: str) -> dict:
             raise PrivateContentError("Video yopiq yoki mavjud emas.") from e
         if "unsupported url" in message:
             raise DownloadError("Bu sayt qo'llab-quvvatlanmaydi.") from e
+        if "requested format is not available" in message:
+            raise DownloadError("Ushbu video formati mavjud emas yoki yopiq.") from e
         raise DownloadError("Videoni yuklab bo'lmadi.") from e
 
     except Exception as e:
