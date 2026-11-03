@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class DownloadError(Exception):
-    """Barcha yuklash xatoliklari uchun asosiy sinf."""
-
+"""Base class for all loading errors."""
 
 class VideoTooLargeError(DownloadError):
     """Video Telegram chegarasidan katta."""
