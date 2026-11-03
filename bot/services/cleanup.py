@@ -19,9 +19,9 @@ MAX_AGE_SECONDS = 30 * 60
 
 def cleanup_old_files() -> int:
     """
-    `DOWNLOAD_DIR` dagi eski fayllarni o'chiradi.
+    Deletes old files in `DOWNLOAD_DIR`.
 
-    Qaytaradi: o'chirilgan fayllar soni.
+    Returns: the number of deleted files.
     """
     if not DOWNLOAD_DIR.exists():
         return 0
