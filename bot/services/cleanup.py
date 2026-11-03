@@ -13,7 +13,7 @@ from bot.config import DOWNLOAD_DIR
 
 logger = logging.getLogger(__name__)
 
-# 30 daqiqadan eski fayllar tozalanadi
+# Files older than 30 minutes will be cleaned up
 MAX_AGE_SECONDS = 30 * 60
 
 
