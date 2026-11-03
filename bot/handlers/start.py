@@ -35,6 +35,7 @@ WELCOME_TEXT = (
     "📎 <b>Qanday foydalanish kerak?</b>\n"
     "Shunchaki video havolasini nusxalab, shu yerga yuboring.\n\n"
     "❓ Yordam uchun /help buyrug'ini bosing."
+    "Yana men ochiq kodli xavfsiz dasutur xisoblanaman. Meni GitHub dan topishingiz mumkin!"
 )
 
 HELP_TEXT = (
