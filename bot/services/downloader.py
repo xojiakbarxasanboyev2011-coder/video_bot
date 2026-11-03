@@ -66,7 +66,7 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
 
 
 def download_video(url: str) -> dict:
-    """Videoni yuklab oladi."""
+    """Downloads the video."""
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     unique_prefix = uuid.uuid4().hex[:8]
