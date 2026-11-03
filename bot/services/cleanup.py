@@ -1,9 +1,8 @@
 """
-Vaqtinchalik fayllarni tozalash.
+Cleaning up temporary files.
 
-`downloads/` papkasidagi ma'lum vaqtdan eski fayllarni o'chiradi.
-Bu `bot/main.py` da davriy vazifa (background task) sifatida
-ishga tushirilishi mumkin.
+Deletes files in the `downloads/` folder that are older than a certain age.
+This can be run as a background task in `bot/main.py`.
 """
 
 import logging
