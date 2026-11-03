@@ -37,11 +37,11 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # Deno JavaScript dvigateli (lug'at formatida)
+        # Deno JavaScript dvigateli
         "js_runtimes": {"deno": {}},
-        # Brauzerni imitatsiya qilish (obyekt formatida)
+        # Brauzerni imitatsiya qilish
         "impersonate": ImpersonateTarget.from_str("chrome"),
-        # EJS skriptlarini yuklashga ruxsat (YouTube himoyasini yechish uchun)
+        # EJS skriptlarini yuklash
         "remote_components": ["ejs"],
     }
 
@@ -56,7 +56,13 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
     else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
-        # Eng yaxshi video va audio oqimlarini tanlab, ularni birlashtirish
+        # PO Token provayderidan foydalanish
+        opts["extractor_args"] = {
+            "youtube": {
+                "po_token": ["web+http://127.0.0.1:4416"],
+            }
+        }
+        # Eng yaxshi video va audio oqimlarini birlashtirish
         opts["format"] = "bestvideo*+bestaudio/best"
 
     return opts
@@ -80,7 +86,7 @@ def download_video(url: str) -> dict:
         message = str(e).lower()
         if "sign in to confirm" in message:
             raise DownloadError(
-                "YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring."
+                "YouTube bot deb hisobladi. Cookie faylini yangilang."
             ) from e
         if "login required" in message or "empty media" in message:
             raise DownloadError(
@@ -91,7 +97,7 @@ def download_video(url: str) -> dict:
         if "unsupported url" in message:
             raise DownloadError("Bu sayt qo'llab-quvvatlanmaydi.") from e
         if "requested format is not available" in message:
-            raise DownloadError("Ushbu video formati mavjud emas yoki yopiq.") from e
+            raise DownloadError("Ushbu video formati mavjud emas.") from e
         raise DownloadError("Videoni yuklab bo'lmadi.") from e
 
     except Exception as e:
