@@ -34,8 +34,8 @@ WELCOME_TEXT = (
     "• Va yana 1800+ sayt\n\n"
     "📎 <b>Qanday foydalanish kerak?</b>\n"
     "Shunchaki video havolasini nusxalab, shu yerga yuboring.\n\n"
-    "❓ Yordam uchun /help buyrug'ini bosing."
     "Yana men ochiq kodli xavfsiz dasutur xisoblanaman. Meni GitHub dan topishingiz mumkin!"
+    "❓ Yordam uchun /help buyrug'ini bosing."
 )
 
 HELP_TEXT = (
