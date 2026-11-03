@@ -8,6 +8,7 @@ import uuid
 from pathlib import Path
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from bot.config import DOWNLOAD_DIR, COOKIES_FILE, IG_COOKIES_FILE
 
@@ -36,9 +37,10 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # Xatolik shu yerda edi: ro'yxat emas, lug'at bo'lishi kerak
-        "js_runtimes": {"deno": {}}, 
-        "impersonate": "chrome",
+        # Deno JavaScript dvigateli (lug'at formatida bo'lishi shart)
+        "js_runtimes": {"deno": {}},
+        # Brauzerni imitatsiya qilish (obyekt formatida bo'lishi shart)
+        "impersonate": ImpersonateTarget.from_str("chrome"),
     }
 
     url_lower = url.lower()
@@ -74,9 +76,13 @@ def download_video(url: str) -> dict:
     except yt_dlp.utils.DownloadError as e:
         message = str(e).lower()
         if "sign in to confirm" in message:
-            raise DownloadError("YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring.") from e
+            raise DownloadError(
+                "YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring."
+            ) from e
         if "login required" in message or "empty media" in message:
-            raise DownloadError("Instagram videoni yuklash uchun tizimga kirish talab qilinadi.") from e
+            raise DownloadError(
+                "Instagram videoni yuklash uchun tizimga kirish talab qilinadi."
+            ) from e
         if "private" in message or "not available" in message:
             raise PrivateContentError("Video yopiq yoki mavjud emas.") from e
         if "unsupported url" in message:
