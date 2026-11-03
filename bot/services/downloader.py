@@ -19,7 +19,7 @@ class DownloadError(Exception):
 """Base class for all loading errors."""
 
 class VideoTooLargeError(DownloadError):
-    """Video Telegram chegarasidan katta."""
+    """The video exceeds the Telegram limit."""
 
 
 class PrivateContentError(DownloadError):
