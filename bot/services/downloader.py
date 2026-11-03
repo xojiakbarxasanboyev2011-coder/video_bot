@@ -27,7 +27,7 @@ class PrivateContentError(DownloadError):
 
 
 def _build_ydl_opts(url: str, output_path: Path) -> dict:
-    """Platformaga qarab yt-dlp sozlamalarini qaytaradi."""
+    """Returns yt-dlp settings based on the platform."""
     opts: dict = {
         "outtmpl": str(output_path),
         "noplaylist": True,
