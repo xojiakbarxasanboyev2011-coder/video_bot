@@ -62,9 +62,10 @@ def download_video(url: str) -> dict:
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
+        # Video uchun "tv" va "mweb" mijozlari
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["mweb", "web_creator"],
+                "player_client": ["tv", "mweb"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
@@ -98,8 +99,7 @@ def download_video(url: str) -> dict:
 
 def download_music(query: str) -> dict:
     """
-    Qo'shiq nomini yt-dlp orqali qidirib, audio (mp3) formatida yuklaydi.
-    Qidiruv va yuklash bitta jarayonda bajariladi.
+    YouTube Music orqali qo'shiqni qidirib, audio (mp3) formatida yuklaydi.
     """
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     unique_prefix = uuid.uuid4().hex[:8]
@@ -107,7 +107,8 @@ def download_music(query: str) -> dict:
 
     opts = _get_base_opts(output_template)
     
-    opts["format"] = "bestaudio/best"
+    # Musiqa uchun eng barqaror format
+    opts["format"] = "bestaudio[ext=m4a]/bestaudio/best"
     opts["postprocessors"] = [{
         "key": "FFmpegExtractAudio",
         "preferredcodec": "mp3",
@@ -117,26 +118,23 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
-    # Musiqa uchun YouTube mijozlari
+    # Musiqa uchun "tv" va "mweb" mijozlari + PO Token
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["web_creator", "mweb"],
+            "player_client": ["tv", "mweb"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
 
-    # ytsearch1: YouTube'dan qidirib, eng birinchi natijani oladi
-    search_url = f"ytsearch1:{query}"
+    # YouTube Music qidiruvi
+    search_url = f"ytmsearch1:{query}"
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(search_url, download=True)
-            
             if "entries" in info:
                 info = info["entries"][0]
-            
             file_path = Path(ydl.prepare_filename(info)).with_suffix('.mp3')
-
     except yt_dlp.utils.DownloadError as e:
         logger.error("Musiqa yuklashda yt-dlp xatoligi: %s", e)
         raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi yoki yuklab bo'lmadi.") from e
