@@ -40,6 +40,8 @@ def _get_base_opts(output_path: Path) -> dict:
         "js_runtimes": {"deno": {}},
         "impersonate": ImpersonateTarget.from_str("chrome"),
         "remote_components": ["ejs:github"],
+        "socket_timeout": 20,  # Tarmoq kutish vaqti (soniya)
+        "retries": 2,          # Qayta urinishlar soni
     }
 
 
@@ -58,11 +60,10 @@ def download_video(url: str) -> dict:
         opts["format"] = "best"
     elif "tiktok.com" in url_lower:
         opts["format"] = "b"
-    else:  # YouTube va boshqalar
+    else:
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
-        # YouTube uchun eng barqaror mijozlar
         opts["extractor_args"] = {
             "youtube": {
                 "player_client": ["ios", "android", "web"],
@@ -122,7 +123,6 @@ def download_music(query: str) -> dict:
         }
     }
 
-    # Qidiruv so'rovini yt-dlp o'zi bajaradi
     search_url = f"ytsearch1:{query}"
 
     try:
