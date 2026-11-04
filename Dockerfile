@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# Tizim paketlari (ffmpeg, curl, unzip, nodejs, npm)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
