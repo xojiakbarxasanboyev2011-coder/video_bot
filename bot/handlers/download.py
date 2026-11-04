@@ -1,11 +1,3 @@
-"""
-Video yuklash handler'i.
-
-Foydalanuvchi yuborgan havolani qabul qiladi, yt-dlp orqali videoni
-yuklab oladi va uni Telegram orqali qaytaradi. Xatoliklar, 50 MB
-limiti va bir foydalanuvchi uchun blokirovka hisobga olingan.
-"""
-
 import asyncio
 import logging
 import os
