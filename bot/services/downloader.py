@@ -37,9 +37,12 @@ def _get_base_opts(output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
+        # Deno JavaScript dvigateli (lug'at formatida)
         "js_runtimes": {"deno": {}},
+        # Brauzerni imitatsiya qilish
         "impersonate": ImpersonateTarget.from_str("chrome"),
-        "remote_components": ["ejs"],
+        # EJS skriptlarini yuklash (xatolik tuzatildi: ejs:github)
+        "remote_components": ["ejs:github"], 
     }
 
 
@@ -61,21 +64,31 @@ def download_video(url: str) -> dict:
     else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
+        
+        # YouTube mijozlarini va PO Token serverini sozlash
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["mweb", "android"],
+                "player_client": ["mweb", "web"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
+        # Eng yaxshi video va audio oqimlarini birlashtirish
         opts["format"] = "bestvideo*+bestaudio/best"
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_path = Path(ydl.prepare_filename(info))
+    except yt_dlp.utils.DownloadError as e:
+        message = str(e).lower()
+        if "sign in to confirm" in message:
+            raise DownloadError("YouTube bot deb hisobladi. Cookie faylini yangilang.") from e
+        if "private" in message or "not available" in message:
+            raise PrivateContentError("Video yopiq yoki mavjud emas.") from e
+        raise DownloadError("Videoni yuklab bo'lmadi. Havolani tekshiring.") from e
     except Exception as e:
-        logger.error("Video yuklashda xatolik: %s", e)
-        raise DownloadError("Videoni yuklab bo'lmadi. Havolani tekshiring.")
+        logger.exception("Kutilmagan yt-dlp xatoligi: %s", url)
+        raise DownloadError("Kutilmagan xatolik yuz berdi.") from e
 
     if not file_path.exists():
         candidates = list(DOWNLOAD_DIR.glob(f"{unique_prefix}_*"))
@@ -94,7 +107,6 @@ def download_music(query: str) -> dict:
     """
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     unique_prefix = uuid.uuid4().hex[:8]
-    # Musiqa uchun fayl nomi
     output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
 
     opts = _get_base_opts(output_template)
@@ -110,9 +122,10 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
+    # YouTube qidiruvi uchun mijozlar va PO Token
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["mweb", "android"],
+            "player_client": ["mweb", "web"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
@@ -131,12 +144,14 @@ def download_music(query: str) -> dict:
             # Post-processordan keyin kengaytma .mp3 bo'ladi
             file_path = Path(ydl.prepare_filename(info)).with_suffix('.mp3')
 
+    except yt_dlp.utils.DownloadError as e:
+        logger.error("Musiqa yuklashda yt-dlp xatoligi: %s", e)
+        raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi.") from e
     except Exception as e:
-        logger.error("Musiqa yuklashda xatolik: %s", e)
-        raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi yoki yuklab bo'lmadi.")
+        logger.exception("Musiqa yuklashda kutilmagan xatolik: %s", query)
+        raise DownloadError("Musiqa yuklashda kutilmagan xatolik yuz berdi.") from e
 
     if not file_path.exists():
-        # Agar .with_suffix ishlamasa, papkadan qidiramiz
         candidates = list(DOWNLOAD_DIR.glob(f"{unique_prefix}_*.mp3"))
         if candidates:
             file_path = candidates[0]
