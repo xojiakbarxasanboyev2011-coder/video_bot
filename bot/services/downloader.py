@@ -117,18 +117,16 @@ def _search_youtube(query: str) -> str | None:
 
 def download_music(query: str) -> dict:
     """Qo'shiq nomini qidirib, audio (mp3) formatida yuklaydi."""
-    # 1. Avval qidiruv orqali videoning URL manzilini topamiz
     video_url = _search_youtube(query)
     if not video_url:
         raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi. Boshqa nom bilan urinib ko'ring.")
 
-    # 2. Topilgan URL orqali audio faylni yuklaymiz
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     unique_prefix = uuid.uuid4().hex[:8]
     output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
 
     opts = _get_base_opts(output_template)
-    opts["format"] = "bestaudio/best"
+    opts["format"] = "bestaudio[ext=m4a]/bestaudio"
     opts["postprocessors"] = [{
         "key": "FFmpegExtractAudio",
         "preferredcodec": "mp3",
