@@ -15,7 +15,7 @@ router = Router(name="start_router")
 # ─────────────────────────────────────────────────────────────
 
 WELCOME_TEXT = (
-    "👋 <b>Salom, {name}!</b>\n\n"
+    "👋 <b>What's uppppp, {name}!</b>\n\n"
     "Men video yuklovchi botman. Menga istalgan ijtimoiy tarmoqdan "
     "havola yuboring — men videoni <b>watermarklarsiz</b> yuklab beraman.\n\n"
     "🎯 <b>Qo'llab-quvvatlanadigan saytlar:</b>\n"
