@@ -60,7 +60,7 @@ def download_video(url: str) -> dict:
         opts["format"] = "best"
     elif "tiktok.com" in url_lower:
         opts["format"] = "b"
-    else:
+    else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
@@ -123,7 +123,8 @@ def download_music(query: str) -> dict:
         }
     }
 
-    search_url = f"ytsearch1:{query}"
+    # YouTube Music qidiruvidan foydalanish
+    search_url = f"ytmsearch1:{query}"
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
