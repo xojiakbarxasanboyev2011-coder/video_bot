@@ -14,7 +14,6 @@ from bot.utils.validators import extract_url, is_supported_url
 logger = logging.getLogger(__name__)
 router = Router(name="download_router")
 
-# Telegram Bot API orqali yuboriladigan maksimal fayl hajmi (50 MB)
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 # Bir vaqtning o'zida bitta foydalanuvchi uchun yuklashni bloklash uchun
