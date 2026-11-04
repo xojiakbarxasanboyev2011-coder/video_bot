@@ -38,8 +38,9 @@ def _get_base_opts(output_path: Path) -> dict:
         "restrictfilenames": True,
         "logger": logger,
         "js_runtimes": {"deno": {}},
+        # MUHIM: String emas, obyekt bo'lishi kerak
         "impersonate": ImpersonateTarget.from_str("chrome"),
-        "remote_components": ["ejs:github"], 
+        "remote_components": ["ejs:github"],
     }
 
 
@@ -62,13 +63,14 @@ def download_video(url: str) -> dict:
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
-        # "ios" mijozidan foydalanish 403 xatosini oldini oladi
+        # YouTube uchun mijozlar va PO Token
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["ios", "web"],
+                "player_client": ["ios", "web", "android"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
+        # 1080p va undan yuqori sifat uchun
         opts["format"] = "bestvideo*+bestaudio/best"
 
     try:
@@ -115,10 +117,10 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
-    # Musiqa uchun "ios" va "android" mijozlari
+    # Musiqa uchun faqat "android" mijozi eng barqaror hisoblanadi
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["ios", "android"],
+            "player_client": ["android"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
