@@ -62,10 +62,9 @@ def download_video(url: str) -> dict:
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
-        # YouTube uchun mijozlar va PO Token
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["ios", "web"],
+                "player_client": ["mweb", "tv", "web_safari"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
@@ -97,14 +96,38 @@ def download_video(url: str) -> dict:
     return {"file_path": file_path, "title": title}
 
 
+def _search_youtube(query: str) -> str | None:
+    """YouTube'dan qidirib, birinchi video URLini qaytaradi."""
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "extract_flat": True,
+        "noplaylist": True,
+        "logger": logger,
+    }
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
+            if "entries" in info and info["entries"]:
+                return info["entries"][0]["url"]
+    except Exception as e:
+        logger.error("YouTube qidiruvida xatolik: %s", e)
+    return None
+
+
 def download_music(query: str) -> dict:
     """Qo'shiq nomini qidirib, audio (mp3) formatida yuklaydi."""
+    # 1. Avval qidiruv orqali videoning URL manzilini topamiz
+    video_url = _search_youtube(query)
+    if not video_url:
+        raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi. Boshqa nom bilan urinib ko'ring.")
+
+    # 2. Topilgan URL orqali audio faylni yuklaymiz
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     unique_prefix = uuid.uuid4().hex[:8]
     output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
 
     opts = _get_base_opts(output_template)
-    
     opts["format"] = "bestaudio/best"
     opts["postprocessors"] = [{
         "key": "FFmpegExtractAudio",
@@ -115,25 +138,20 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
-    # Musiqa uchun "web" mijozi va PO Token
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["web"],
+            "player_client": ["mweb", "tv", "web_safari"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
 
-    search_url = f"ytsearch1:{query}"
-
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(search_url, download=True)
-            if "entries" in info:
-                info = info["entries"][0]
+            info = ydl.extract_info(video_url, download=True)
             file_path = Path(ydl.prepare_filename(info)).with_suffix('.mp3')
     except yt_dlp.utils.DownloadError as e:
         logger.error("Musiqa yuklashda yt-dlp xatoligi: %s", e)
-        raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi.") from e
+        raise DownloadError(f"'{query}' qo'shig'ini yuklab bo'lmadi.") from e
     except Exception as e:
         logger.exception("Musiqa yuklashda kutilmagan xatolik: %s", query)
         raise DownloadError("Musiqa yuklashda kutilmagan xatolik yuz berdi.") from e
