@@ -19,11 +19,11 @@ class DownloadError(Exception):
 """Base class for all loading errors."""
 
 class VideoTooLargeError(DownloadError):
-    """The video exceeds the Telegram limit."""
+    """Telegram limitlari"""
 
 
 class PrivateContentError(DownloadError):
-    """The video is private, deleted, or unavailable."""
+    """Video berkitilgan yoki hullas yuklab bo'lmadi"""
 
 
 def _build_ydl_opts(url: str, output_path: Path) -> dict:
