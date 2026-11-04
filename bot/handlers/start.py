@@ -1,10 +1,3 @@
-"""
-/start, /help, /about buyruqlari va ularga tegishli callback'lar.
-
-Foydalanuvchini kutib oladi, qo'llanma va bot haqida ma'lumot beradi.
-Barcha klaviaturalar `bot.keyboards` paketidan olinadi.
-"""
-
 import logging
 
 from aiogram import F, Router
