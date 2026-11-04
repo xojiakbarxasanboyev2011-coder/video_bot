@@ -36,6 +36,7 @@ async def handle_text_input(message: Message) -> None:
 
     _active_users.add(user_id)
     file_path: Path | None = None
+    status_msg = None
 
     try:
         loop = asyncio.get_running_loop()
@@ -46,7 +47,12 @@ async def handle_text_input(message: Message) -> None:
             await message.bot.send_chat_action(message.chat.id, ChatAction.UPLOAD_VIDEO)
             await status_msg.edit_text("⬇️ Video yuklanmoqda, iltimos kuting...")
 
-            result = await loop.run_in_executor(None, download_video, url)
+            # 120 soniya vaqt chegarasi
+            result = await asyncio.wait_for(
+                loop.run_in_executor(None, download_video, url),
+                timeout=120.0
+            )
+            
             file_path = result["file_path"]
             title = result["title"]
 
@@ -68,7 +74,6 @@ async def handle_text_input(message: Message) -> None:
 
         # ─── 2. Agar havola bo'lmasa (MUSIQA) ───
         else:
-            # Juda qisqa matnlarni rad etish
             if len(text.strip()) < 3:
                 await message.reply("❓ Menga video havolasini yoki qo'shiq nomini yuboring.")
                 return
@@ -77,7 +82,12 @@ async def handle_text_input(message: Message) -> None:
             await message.bot.send_chat_action(message.chat.id, ChatAction.UPLOAD_VOICE)
             await status_msg.edit_text("⬇️ Musiqa yuklanmoqda, iltimos kuting...")
 
-            result = await loop.run_in_executor(None, download_music, text)
+            # 120 soniya vaqt chegarasi
+            result = await asyncio.wait_for(
+                loop.run_in_executor(None, download_music, text),
+                timeout=120.0
+            )
+            
             file_path = result["file_path"]
             title = result["title"]
 
@@ -97,13 +107,24 @@ async def handle_text_input(message: Message) -> None:
             )
             await status_msg.delete()
 
+    except asyncio.TimeoutError:
+        logger.warning("Yuklash vaqti tugadi: %s", text)
+        if status_msg:
+            await status_msg.edit_text("❌ Yuklash vaqti tugadi (2 daqiqa). YouTube serveri javob bermayapti. Keyinroq qayta urinib ko'ring.")
+
     except DownloadError as e:
         logger.warning("Xatolik: %s", e)
-        await message.answer(f"❌ {e}")
+        if status_msg:
+            await status_msg.edit_text(f"❌ {e}")
+        else:
+            await message.reply(f"❌ {e}")
 
     except Exception:
         logger.exception("Kutilmagan xatolik")
-        await message.answer("❌ Kutilmagan xatolik yuz berdi. Keyinroq qayta urinib ko'ring.")
+        if status_msg:
+            await status_msg.edit_text("❌ Kutilmagan xatolik yuz berdi. Keyinroq qayta urinib ko'ring.")
+        else:
+            await message.reply("❌ Kutilmagan xatolik yuz berdi.")
 
     finally:
         _active_users.discard(user_id)
@@ -116,6 +137,5 @@ async def handle_text_input(message: Message) -> None:
 
 @router.callback_query(F.data == "new_download")
 async def cb_new_download(callback: CallbackQuery) -> None:
-    """«Yana yuklash» tugmasi bosilganda."""
     await callback.message.answer("📎 Menga yangi video havolasini yoki qo'shiq nomini yuboring.")
     await callback.answer()
