@@ -38,7 +38,6 @@ def _get_base_opts(output_path: Path) -> dict:
         "restrictfilenames": True,
         "logger": logger,
         "js_runtimes": {"deno": {}},
-        # MUHIM: String emas, obyekt bo'lishi kerak
         "impersonate": ImpersonateTarget.from_str("chrome"),
         "remote_components": ["ejs:github"],
     }
@@ -66,11 +65,10 @@ def download_video(url: str) -> dict:
         # YouTube uchun mijozlar va PO Token
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["ios", "web", "android"],
+                "player_client": ["ios", "web"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
-        # 1080p va undan yuqori sifat uchun
         opts["format"] = "bestvideo*+bestaudio/best"
 
     try:
@@ -117,10 +115,10 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
-    # Musiqa uchun faqat "android" mijozi eng barqaror hisoblanadi
+    # Musiqa uchun "web" mijozi va PO Token
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["android"],
+            "player_client": ["web"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
