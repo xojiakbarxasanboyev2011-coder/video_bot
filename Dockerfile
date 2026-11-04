@@ -14,7 +14,6 @@ ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 WORKDIR /app
 
-# Python kutubxonalari va YouTube PO Token plaginini o'rnatish
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir "yt-dlp[default,curl-cffi]" yt-dlp-ejs bgutil-ytdlp-pot-provider
