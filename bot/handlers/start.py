@@ -1,3 +1,7 @@
+"""
+/start, /help, /about buyruqlari va ularga tegishli callback'lar.
+"""
+
 import logging
 
 from aiogram import F, Router
@@ -10,59 +14,46 @@ logger = logging.getLogger(__name__)
 router = Router(name="start_router")
 
 
-# ─────────────────────────────────────────────────────────────
-# Matnlar — bitta joyda saqlash osonroq (kelajakda i18n uchun qulay)
-# ─────────────────────────────────────────────────────────────
-
 WELCOME_TEXT = (
-    "👋 <b>What's uppppp, {name}!</b>\n\n"
-    "I'm a video downloader bot. I don't care which the social network "
-    "havola yuboring — men videoni <b>watermarklarsiz</b> yuklab beraman.\n\n"
-    "🎯 <b>Qo'llab-quvvatlanadigan saytlar:</b>\n"
-    "• YouTube (Shorts, oddiy videolar)\n"
-    "• Instagram (Reels, IGTV, postlar)\n"
-    "• TikTok\n"
-    "• Twitter / X\n"
-    "• Facebook\n"
-    "• Va yana 1800+ sayt\n\n"
-    "📎 <b>Qanday foydalanish kerak?</b>\n"
-    "Shunchaki video havolasini nusxalab, shu yerga yuboring.\n\n"
-    "Yana men ochiq kodli xavfsiz dasutur xisoblanaman. Meni GitHub dan topishingiz mumkin!"
-    "❓ Yordam uchun /help buyrug'ini bosing."
+    "👋 <b>Salom, {name}!</b>\n\n"
+    "Men <b>Universal Media Yuklovchi</b> botman. Menga istalgan video havolasini "
+    "yoki shunchaki qo'shiq nomini yuboring — men uni topib, sizga yuboraman.\n\n"
+    "🎯 <b>Men nimalarni qila olaman?</b>\n"
+    "🎬 <b>Video yuklash:</b> YouTube, Instagram, TikTok, Twitter va boshqa 1000+ saytlardan videolarni yuklayman.\n"
+    "🎵 <b>Musiqa topish:</b> Shunchaki qo'shiq nomini yozing (masalan: <i>Eminem Lose Yourself</i>), men uni YouTube'dan topib, MP3 formatida yuboraman.\n\n"
+    "🚀 <b>Qanday foydalanish kerak?</b>\n"
+    "1. Videoga havolani nusxalab shu yerga tashlang.\n"
+    "YOKI\n"
+    "2. Qo'shiq nomini oddiy matn qilib yozing.\n\n"
+    "❓ Batafsil ma'lumot uchun /help buyrug'ini bosing."
 )
 
 HELP_TEXT = (
     "📖 <b>Botdan foydalanish qo'llanmasi</b>\n\n"
-    "<b>1-qadam.</b> Kerakli videoni toping (YouTube, Instagram, TikTok...)\n"
-    "<b>2-qadam.</b> «Ulashish» → «Havolani nusxalash» tugmasini bosing\n"
-    "<b>3-qadam.</b> Havolani shu botga yuboring\n"
-    "<b>4-qadam.</b> Bir necha soniyadan so'ng videoni olasiz ✅\n\n"
-    "<b>⚠️ Cheklovlar:</b>\n"
-    "• Video hajmi <b>50 MB</b> dan oshmasligi kerak\n"
-    "• Yopiq (private) postlar yuklanmaydi\n"
-    "• Ba'zi saytlar vaqtincha ishlamasligi mumkin\n\n"
-    "<b>Buyruqlar:</b>\n"
+    "📌 <b>1. Video yuklash</b>\n"
+    "Kerakli videoni toping (YouTube, Instagram, TikTok...), «Ulashish» → «Havolani nusxalash» tugmasini bosing va shu yerga yuboring. Men uni yuklab beraman.\n\n"
+    "📌 <b>2. Musiqa (MP3) yuklash</b>\n"
+    "Hech qanday havola kerak emas. Shunchaki qo'shiqchi va qo'shiq nomini yozing.\n"
+    "<i>Misol: Konsta X - Izlamading</i>\n\n"
+    "⚠️ <b>Cheklovlar:</b>\n"
+    "• Telegram botlari orqali 50 MB dan katta fayl yuborib bo'lmaydi.\n"
+    "• Yopiq (private) akkauntlardagi videolar yuklanmaydi.\n\n"
+    "⚙️ <b>Buyruqlar:</b>\n"
     "/start — Botni qayta ishga tushirish\n"
     "/help — Ushbu qo'llanma\n"
-    "/about — Bot haqida ma'lumot"
+    "/about — Bot va uning texnologiyalari haqida"
 )
 
 ABOUT_TEXT = (
-    "ℹ️ <b>Bot haqida</b>\n\n"
-    "Bu bot <code>yt-dlp</code> va <code>aiogram 3</code> asosida qurilgan "
-    "ochiq kodli loyihadir.\n\n"
-    "🔧 <b>Texnologiyalar:</b>\n"
-    "• Python 3.10+\n"
-    "• aiogram 3.x\n"
-    "• yt-dlp\n\n"
-    "📬 <b>Taklif va shikoyatlar:</b>\n"
-    "Muammo yuz bersa, administrator bilan bog'laning."
+    "ℹ️ <b>Bot haqida ma'lumot</b>\n\n"
+    "Ushbu bot eng zamonaviy texnologiyalar asosida ishlab chiqilgan:\n"
+    "• <b>Python 3.11</b> — asosiy dasturlash tili\n"
+    "• <b>aiogram 3</b> — Telegram bot framework'i\n"
+    "• <b>yt-dlp</b> — dunyodagi eng kuchli video/audio yuklovchi\n"
+    "• <b>Docker, Deno, PO Token</b> — YouTube himoyalarini chetlab o'tish uchun\n\n"
+    "🤖 Agar botda xatolik sezsangiz yoki taklifingiz bo'lsa, administrator bilan bog'laning."
 )
 
-
-# ─────────────────────────────────────────────────────────────
-# Buyruqlar
-# ─────────────────────────────────────────────────────────────
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
@@ -79,7 +70,7 @@ async def cmd_start(message: Message) -> None:
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    """Foydalanuvchi /help bosganda batafsil qo'llanmani ko'rsatadi."""
+    """Foydalanuvchi /help bosganda."""
     await message.answer(
         HELP_TEXT,
         reply_markup=back_to_menu_keyboard(),
@@ -96,10 +87,6 @@ async def cmd_about(message: Message) -> None:
         disable_web_page_preview=True,
     )
 
-
-# ─────────────────────────────────────────────────────────────
-# Callback handler'lar
-# ─────────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "show_help")
 async def cb_show_help(callback: CallbackQuery) -> None:
