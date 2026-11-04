@@ -1,5 +1,5 @@
 """
-Working with yt-dlp.
+yt-dlp bilan ishlash (Video va Musiqa).
 """
 
 import logging
@@ -16,19 +16,20 @@ logger = logging.getLogger(__name__)
 
 
 class DownloadError(Exception):
-"""Base class for all loading errors."""
+    """Barcha yuklash xatoliklari uchun asosiy sinf."""
+
 
 class VideoTooLargeError(DownloadError):
-    """Telegram limitlari"""
+    """Video Telegram chegarasidan katta."""
 
 
 class PrivateContentError(DownloadError):
-    """Video berkitilgan yoki hullas yuklab bo'lmadi"""
+    """Video yopiq, o'chirilgan yoki mavjud emas."""
 
 
-def _build_ydl_opts(url: str, output_path: Path) -> dict:
-    """Returns yt-dlp settings based on the platform."""
-    opts: dict = {
+def _get_base_opts(output_path: Path) -> dict:
+    """Barcha yuklashlar uchun umumiy sozlamalar."""
+    return {
         "outtmpl": str(output_path),
         "noplaylist": True,
         "quiet": True,
@@ -41,6 +42,14 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
         "remote_components": ["ejs"],
     }
 
+
+def download_video(url: str) -> dict:
+    """Videoni yuklab oladi (havola orqali)."""
+    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    unique_prefix = uuid.uuid4().hex[:8]
+    output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
+
+    opts = _get_base_opts(output_template)
     url_lower = url.lower()
 
     if "instagram.com" in url_lower:
@@ -52,54 +61,21 @@ def _build_ydl_opts(url: str, output_path: Path) -> dict:
     else:  # YouTube va boshqalar
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
-        # YouTube PO Token provayderi bilan integratsiya
         opts["extractor_args"] = {
             "youtube": {
                 "player_client": ["mweb", "android"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
-        # Format tanlashni yanada moslashuvchan qilamiz
         opts["format"] = "bestvideo*+bestaudio/best"
 
-    return opts
-
-
-def download_video(url: str) -> dict:
-    """Downloads the video."""
-    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-    unique_prefix = uuid.uuid4().hex[:8]
-    output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
-
-    ydl_opts = _build_ydl_opts(url, output_template)
-
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_path = Path(ydl.prepare_filename(info))
-
-    except yt_dlp.utils.DownloadError as e:
-        message = str(e).lower()
-        if "sign in to confirm" in message:
-            raise DownloadError(
-                "YouTube bot deb hisobladi. Cookie faylini yangilang yoki birozdan so'ng qayta urinib ko'ring."
-            ) from e
-        if "login required" in message or "empty media" in message:
-            raise DownloadError(
-                "Instagram videoni yuklash uchun tizimga kirish talab qilinadi."
-            ) from e
-        if "private" in message or "not available" in message:
-            raise PrivateContentError("Video yopiq yoki mavjud emas.") from e
-        if "unsupported url" in message:
-            raise DownloadError("Bu sayt qo'llab-quvvatlanmaydi.") from e
-        if "requested format is not available" in message:
-            raise DownloadError("Ushbu video formati mavjud emas.") from e
-        raise DownloadError("Videoni yuklab bo'lmadi.") from e
-
     except Exception as e:
-        logger.exception("Unexpected yt-dlp error for %s", url)
-        raise DownloadError("Kutilmagan xatolik yuz berdi.") from e
+        logger.error("Video yuklashda xatolik: %s", e)
+        raise DownloadError("Videoni yuklab bo'lmadi. Havolani tekshiring.")
 
     if not file_path.exists():
         candidates = list(DOWNLOAD_DIR.glob(f"{unique_prefix}_*"))
@@ -109,8 +85,65 @@ def download_video(url: str) -> dict:
     title = info.get("title") or "Video"
     title = re.sub(r"[\r\n\t]", " ", title).strip()
 
-    return {
-        "file_path": file_path,
-        "title": title,
-        "ext": info.get("ext", "mp4"),
+    return {"file_path": file_path, "title": title}
+
+
+def download_music(query: str) -> dict:
+    """
+    Qo'shiq nomini qidirib, audio (mp3) formatida yuklaydi.
+    """
+    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    unique_prefix = uuid.uuid4().hex[:8]
+    # Musiqa uchun fayl nomi
+    output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
+
+    opts = _get_base_opts(output_template)
+    
+    # Audio ajratib olish sozlamalari
+    opts["format"] = "bestaudio/best"
+    opts["postprocessors"] = [{
+        "key": "FFmpegExtractAudio",
+        "preferredcodec": "mp3",
+        "preferredquality": "192",
+    }]
+
+    if COOKIES_FILE.exists():
+        opts["cookiefile"] = str(COOKIES_FILE)
+
+    opts["extractor_args"] = {
+        "youtube": {
+            "player_client": ["mweb", "android"],
+            "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
+        }
     }
+
+    # ytsearch1: - YouTube'dan qidirib, eng birinchi natijani oladi
+    search_url = f"ytsearch1:{query}"
+
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(search_url, download=True)
+            
+            # ytsearch natijasi list (entries) ko'rinishida keladi
+            if "entries" in info:
+                info = info["entries"][0]
+            
+            # Post-processordan keyin kengaytma .mp3 bo'ladi
+            file_path = Path(ydl.prepare_filename(info)).with_suffix('.mp3')
+
+    except Exception as e:
+        logger.error("Musiqa yuklashda xatolik: %s", e)
+        raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi yoki yuklab bo'lmadi.")
+
+    if not file_path.exists():
+        # Agar .with_suffix ishlamasa, papkadan qidiramiz
+        candidates = list(DOWNLOAD_DIR.glob(f"{unique_prefix}_*.mp3"))
+        if candidates:
+            file_path = candidates[0]
+        else:
+            raise DownloadError("Musiqa fayli saqlanmadi.")
+
+    title = info.get("title") or query
+    title = re.sub(r"[\r\n\t]", " ", title).strip()
+
+    return {"file_path": file_path, "title": title}
