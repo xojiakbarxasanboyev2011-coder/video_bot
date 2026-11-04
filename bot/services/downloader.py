@@ -37,11 +37,9 @@ def _get_base_opts(output_path: Path) -> dict:
         "nocheckcertificate": True,
         "restrictfilenames": True,
         "logger": logger,
-        # Deno JavaScript dvigateli (lug'at formatida)
         "js_runtimes": {"deno": {}},
-        # Brauzerni imitatsiya qilish
         "impersonate": ImpersonateTarget.from_str("chrome"),
-        # EJS skriptlarini yuklash (xatolik tuzatildi: ejs:github)
+        # Tuzatildi: ejs:github ko'rinishida bo'lishi kerak
         "remote_components": ["ejs:github"], 
     }
 
@@ -65,14 +63,13 @@ def download_video(url: str) -> dict:
         if COOKIES_FILE.exists():
             opts["cookiefile"] = str(COOKIES_FILE)
         
-        # YouTube mijozlarini va PO Token serverini sozlash
+        # Tuzatildi: "mweb" olib tashlandi, faqat barqaror mijozlar qoldirildi
         opts["extractor_args"] = {
             "youtube": {
-                "player_client": ["mweb", "web"],
+                "player_client": ["web", "android"],
                 "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
             }
         }
-        # Eng yaxshi video va audio oqimlarini birlashtirish
         opts["format"] = "bestvideo*+bestaudio/best"
 
     try:
@@ -102,16 +99,13 @@ def download_video(url: str) -> dict:
 
 
 def download_music(query: str) -> dict:
-    """
-    Qo'shiq nomini qidirib, audio (mp3) formatida yuklaydi.
-    """
+    """Qo'shiq nomini qidirib, audio (mp3) formatida yuklaydi."""
     DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
     unique_prefix = uuid.uuid4().hex[:8]
     output_template = DOWNLOAD_DIR / f"{unique_prefix}_%(title).100s.%(ext)s"
 
     opts = _get_base_opts(output_template)
     
-    # Audio ajratib olish sozlamalari
     opts["format"] = "bestaudio/best"
     opts["postprocessors"] = [{
         "key": "FFmpegExtractAudio",
@@ -122,28 +116,22 @@ def download_music(query: str) -> dict:
     if COOKIES_FILE.exists():
         opts["cookiefile"] = str(COOKIES_FILE)
 
-    # YouTube qidiruvi uchun mijozlar va PO Token
+    # Tuzatildi: Musiqa uchun faqat "android" mijozidan foydalanish 403 xatosini oldini oladi
     opts["extractor_args"] = {
         "youtube": {
-            "player_client": ["mweb", "web"],
+            "player_client": ["android"],
             "youtubepot-bgutilhttp": {"base_url": ["http://127.0.0.1:4416"]},
         }
     }
 
-    # ytsearch1: - YouTube'dan qidirib, eng birinchi natijani oladi
     search_url = f"ytsearch1:{query}"
 
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(search_url, download=True)
-            
-            # ytsearch natijasi list (entries) ko'rinishida keladi
             if "entries" in info:
                 info = info["entries"][0]
-            
-            # Post-processordan keyin kengaytma .mp3 bo'ladi
             file_path = Path(ydl.prepare_filename(info)).with_suffix('.mp3')
-
     except yt_dlp.utils.DownloadError as e:
         logger.error("Musiqa yuklashda yt-dlp xatoligi: %s", e)
         raise DownloadError(f"'{query}' qo'shig'ini topib bo'lmadi.") from e
