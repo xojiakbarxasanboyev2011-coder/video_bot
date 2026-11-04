@@ -1,10 +1,3 @@
-"""
-Inline klaviaturalar.
-
-Har bir funksiya tayyor InlineKeyboardMarkup qaytaradi.
-Handler'lar bu funksiyalarni chaqirib, xabarga biriktiradi.
-"""
-
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -16,7 +9,7 @@ def help_keyboard() -> InlineKeyboardMarkup:
     """
     builder = InlineKeyboardBuilder()
     builder.button(text="📖 Qo'llanma", callback_data="show_help")
-    builder.button(text="ℹ️ Bot haqida", callback_data="show_about")
+    builder.button(text="ℹ️ About the bot", callback_data="show_about")
     builder.adjust(2)  # ikkita tugma bir qatorda
     return builder.as_markup()
 
