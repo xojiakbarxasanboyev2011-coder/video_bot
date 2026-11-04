@@ -21,11 +21,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir "yt-dlp[default,curl-cffi]" yt-dlp-ejs bgutil-ytdlp-pot-provider
 
-# PO Token serverini yuklash (npm xatosini tuzatish uchun --legacy-peer-deps qo'shildi)
+# PO Token serverini yuklash va TypeScript kompilyatorini o'rnatish
 RUN git clone --single-branch --branch 1.1.0 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /opt/bgutil && \
     cd /opt/bgutil/server && \
     npm install --omit=dev --legacy-peer-deps && \
-    npx tsc
+    npm install typescript && \
+    ./node_modules/.bin/tsc
 
 # Boshlash skripti: avval bgutil serverni ishga tushiramiz, keyin botni
 RUN echo '#!/bin/bash\nnode /opt/bgutil/server/build/main.js &\nsleep 2\nexec python -m bot.main' > /app/start.sh && \
