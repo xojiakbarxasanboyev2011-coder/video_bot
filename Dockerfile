@@ -1,38 +1,33 @@
 FROM python:3.11-slim
 
-# Tizim paketlari (ffmpeg, curl, unzip, nodejs, npm)
+# 1. Tizim paketlari
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     unzip \
-    nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Deno (YouTube JS himoyasi uchun)
+# 2. Deno (YouTube JavaScript himoyasi uchun)
 RUN curl -fsSL https://deno.land/install.sh | sh
 ENV DENO_INSTALL="/root/.deno"
 ENV PATH="$DENO_INSTALL/bin:$PATH"
 
 WORKDIR /app
 
-# Python kutubxonalari va YouTube PO Token plaginini o'rnatish
+# 3. Python kutubxonalari (requirements.txt orqali curl_cffi<0.16 o'rnatiladi)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir "yt-dlp[default,curl-cffi]" yt-dlp-ejs bgutil-ytdlp-pot-provider
 
-# PO Token serverini yuklash va TypeScript kompilyatorini o'rnatish
-RUN git clone --single-branch --branch 1.1.0 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /opt/bgutil && \
-    cd /opt/bgutil/server && \
-    npm install --omit=dev --legacy-peer-deps && \
-    npm install typescript && \
-    ./node_modules/.bin/tsc
+# 4. PO Token Provider (Rust versiyasi - Node.js talab qilmaydi)
+RUN curl -fsSL https://github.com/jim60105/bgutil-ytdlp-pot-provider-rs/releases/latest/download/bgutil-pot-linux-x86_64 -o /usr/local/bin/bgutil-pot && \
+    chmod +x /usr/local/bin/bgutil-pot
 
-# Boshlash skripti: avval bgutil serverni ishga tushiramiz, keyin botni
-RUN echo '#!/bin/bash\nnode /opt/bgutil/server/build/main.js &\nsleep 2\nexec python -m bot.main' > /app/start.sh && \
+# 5. Ishga tushirish skripti (POT server + bot)
+RUN echo '#!/bin/bash\nbgutil-pot server --port 4416 &\nsleep 2\nexec python -m bot.main' > /app/start.sh && \
     chmod +x /app/start.sh
 
-# Loyiha fayllari
+# 6. Qolgan fayllar
 COPY . .
 
 EXPOSE 10000
